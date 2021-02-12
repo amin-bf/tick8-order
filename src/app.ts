@@ -18,7 +18,7 @@ app.use(
 app.use(currentUser)
 
 Object.values(router).forEach(routerItem => {
-  // app.use(routerItem)
+  app.use(routerItem)
 })
 
 app.all("*", async (req, res, next) => {

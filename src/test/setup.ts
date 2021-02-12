@@ -2,6 +2,7 @@ import { MongoMemoryServer } from "mongodb-memory-server"
 import mongoose from "mongoose"
 import request from "supertest"
 import jwt from "jsonwebtoken"
+import { randomBytes } from "crypto"
 
 import { app } from "../app"
 
@@ -43,7 +44,7 @@ afterAll(async () => {
 })
 
 global.signin = () => {
-  const payload = { email: "test@test.com", id: 1 }
+  const payload = { email: "test@test.com", id: randomBytes(4).toString("hex") }
 
   const token = jwt.sign(payload, process.env.JWT_SECRET!)
 
