@@ -3,6 +3,7 @@ import { Order, OrderStatus } from "./order"
 
 // An interface to describe the properties of new user
 interface ITicketAttrs {
+  id?: string
   title: string
   price: number
 }
@@ -41,8 +42,11 @@ const ticketSchema = new mongoose.Schema(
   }
 )
 
-ticketSchema.statics.build = (ticketDoc: ITicketAttrs): ITicketDoc => {
-  return new Ticket(ticketDoc)
+ticketSchema.statics.build = (ticketAttrs: ITicketAttrs): ITicketDoc => {
+  return new Ticket({
+    ...ticketAttrs,
+    _id: ticketAttrs.id || null
+  })
 }
 ticketSchema.methods.isReserved = async function () {
   const existingOrder = await Order.findOne({

@@ -1,8 +1,10 @@
+import { OrderStatus } from "@vanguardo/common"
 import mongoose from "mongoose"
 import request from "supertest"
 
 import { app } from "../../app"
 import { Ticket } from "../../models/ticket"
+import { natsWrapper } from "../../nats-wrapper"
 
 const createTicket = async () => {
   const ticket = Ticket.build({
@@ -111,5 +113,34 @@ it("Should delete a order related to the user", async () => {
     .get(`/api/orders/${order.id}`)
     .set("Cookie", cookie)
     .send()
-    .expect(404)
+    .expect(200)
+
+  expect(response.body.status).toEqual(OrderStatus.Cancelled)
+})
+
+it("Should publish order cancel event", async () => {
+  const cookie = global.signin()
+  const ticket = await createTicket()
+
+  const { body: order } = await request(app)
+    .post("/api/orders")
+    .set("Cookie", cookie)
+    .send({ ticketId: ticket._id })
+
+  let response = await request(app)
+    .get(`/api/orders/${order.id}`)
+    .set("Cookie", cookie)
+    .send()
+    .expect(200)
+
+  expect(response.body.id).toEqual(order.id)
+  expect(response.body.ticket.id).toEqual(ticket._id.toString())
+
+  await request(app)
+    .delete(`/api/orders/${order.id}`)
+    .set("Cookie", cookie)
+    .send()
+    .expect(200)
+
+  expect(natsWrapper.client.publish).toHaveBeenCalledTimes(2)
 })

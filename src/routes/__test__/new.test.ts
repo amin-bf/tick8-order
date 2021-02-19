@@ -4,7 +4,7 @@ import mongoose from "mongoose"
 import { app } from "../../app"
 import { Ticket } from "../../models/ticket"
 import { Order } from "../../models/order"
-import { OrderStatus } from "@vanguardo/common"
+import { natsWrapper } from "../../nats-wrapper"
 
 it("has a route handler that listens on /api/orders for post requests", async () => {
   const response = await request(app).post("/api/orders").send()
@@ -114,4 +114,23 @@ it("returns the order if ticketId provided is valid", async () => {
     .expect(201)
 
   expect(response.body.ticket.id).toEqual(ticket._id.toString())
+})
+
+it("publishes an event", async () => {
+  const ticket = Ticket.build({
+    price: 3000,
+    title: "concert"
+  })
+  await ticket.save()
+
+  const cookie = global.signin()
+  const response = await request(app)
+    .post("/api/orders")
+    .set("Cookie", cookie)
+    .send({
+      ticketId: ticket._id
+    })
+    .expect(201)
+
+  expect(natsWrapper.client.publish).toHaveBeenCalled()
 })

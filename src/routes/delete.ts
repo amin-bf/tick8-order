@@ -8,7 +8,9 @@ import {
 import { param } from "express-validator"
 import mongoose from "mongoose"
 
-import { Order } from "../models/order"
+import { Order, OrderStatus } from "../models/order"
+import { OrderCancelledPublisher } from "../events/publishers/order-cancelled-publisher"
+import { natsWrapper } from "../nats-wrapper"
 
 const router = Router()
 
@@ -31,7 +33,16 @@ router.delete(
 
     if (order.userId !== req.currentUser!.id) throw new NotAuthorizedError()
 
-    await order.delete()
+    order.status = OrderStatus.Cancelled
+
+    await order.save()
+
+    new OrderCancelledPublisher(natsWrapper.client).publish({
+      id: order.id,
+      ticket: {
+        id: order.ticket.id
+      }
+    })
 
     res.json({ message: "Order Deleted!" })
   }
